@@ -307,6 +307,63 @@ export class EntityExtractionService {
     await this.relationRepository.delete(id);
   }
 
+  /**
+   * 查找已存在的同名同类型实体（跨文档实体匹配）
+   * @param name 实体名称
+   * @param type 实体类型
+   * @param excludeDocumentId 排除的文档ID（用于查找其他文档中的同名实体）
+   */
+  async findExistingEntity(name: string, type: EntityType, excludeDocumentId?: string): Promise<ExtractedEntity | null> {
+    const queryBuilder = this.entityRepository
+      .createQueryBuilder('entity')
+      .where('entity.name = :name AND entity.type = :type', { name, type });
+
+    if (excludeDocumentId) {
+      queryBuilder.andWhere('entity.documentId != :excludeDocumentId', { excludeDocumentId });
+    }
+
+    return queryBuilder.getOne();
+  }
+
+  /**
+   * 查找所有同名同类型实体（跨文档）
+   * @param name 实体名称
+   * @param type 实体类型
+   */
+  async findAllEntitiesByName(name: string, type: EntityType): Promise<ExtractedEntity[]> {
+    return this.entityRepository.find({
+      where: { name, type },
+      order: { createdAt: 'ASC' },
+    });
+  }
+
+  /**
+   * 获取实体的跨文档关联关系
+   * @param entityId 实体ID
+   */
+  async getCrossDocumentRelations(entityId: string): Promise<ExtractedRelation[]> {
+    const entity = await this.getEntity(entityId);
+    if (!entity) {
+      return [];
+    }
+
+    // 查找同名同类型的其他实体
+    const sameEntities = await this.findAllEntitiesByName(entity.name, entity.type);
+    const otherEntityIds = sameEntities.filter(e => e.id !== entityId).map(e => e.id);
+
+    if (otherEntityIds.length === 0) {
+      return [];
+    }
+
+    // 查找这些实体的所有关系
+    const relations = await this.relationRepository
+      .createQueryBuilder('relation')
+      .where('relation.sourceEntityId IN (:...ids) OR relation.targetEntityId IN (:...ids)', { ids: otherEntityIds })
+      .getMany();
+
+    return relations;
+  }
+
   async batchExtractEntitiesAndRelations(documentIds: string[]): Promise<any[]> {
     const results = [];
     for (const documentId of documentIds) {
