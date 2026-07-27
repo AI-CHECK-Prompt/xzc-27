@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { QALog, QAParadigm, QAStatus } from './entities/qa-log.entity';
 import { KnowledgeGraphService } from '../knowledge-graph/knowledge-graph.service';
-import { CacheService } from '../../common/cache/cache.service';
+import { SemanticCacheService } from '../../common/cache/semantic-cache.service';
 import { LoggerService } from '../../common/logger/logger.service';
 
 @Injectable()
@@ -12,15 +12,15 @@ export class QAService {
     @InjectRepository(QALog)
     private qaLogRepository: Repository<QALog>,
     private knowledgeGraphService: KnowledgeGraphService,
-    private cacheService: CacheService,
+    private semanticCacheService: SemanticCacheService,
     private logger: LoggerService,
   ) {}
 
   async askQuestion(question: string, userId?: string): Promise<{ answer: string; sources: any[]; confidence: number; highlights: any[] }> {
     const startTime = Date.now();
 
-    // Check cache first
-    const cachedAnswer = this.cacheService.get(question);
+    // Check semantic cache first (supports semantic similarity matching)
+    const cachedAnswer = this.semanticCacheService.get(question);
     if (cachedAnswer) {
       const responseTime = Date.now() - startTime;
       await this.saveLog(question, cachedAnswer.answer, QAParadigm.FACTUAL, cachedAnswer.sources, cachedAnswer.highlights, cachedAnswer.confidence, responseTime, userId);
@@ -58,8 +58,8 @@ export class QAService {
 
     const responseTime = Date.now() - startTime;
 
-    // Cache the answer for 1 hour
-    this.cacheService.set(question, { answer, sources, highlights, confidence }, 3600000);
+    // Cache the answer for 1 hour (using semantic cache for similarity-based matching)
+    this.semanticCacheService.set(question, { answer, sources, highlights, confidence }, 3600000);
 
     // Save log
     await this.saveLog(question, answer, paradigm, sources, highlights, confidence, responseTime, userId);
