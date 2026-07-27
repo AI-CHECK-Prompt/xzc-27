@@ -4,12 +4,14 @@ import { EntityExtractionService } from '../entity-extraction/entity-extraction.
 import { LoggerService } from '../../common/logger/logger.service';
 import { ExtractedEntity } from '../entity-extraction/entities/extracted-entity.entity';
 import { ExtractedRelation } from '../entity-extraction/entities/extracted-relation.entity';
+import { DocumentService } from '../document/document.service';
 
 @Injectable()
 export class KnowledgeGraphService {
   constructor(
     private neo4jService: Neo4jService,
     private entityExtractionService: EntityExtractionService,
+    private documentService: DocumentService,
     private logger: LoggerService,
   ) {}
 
@@ -19,8 +21,9 @@ export class KnowledgeGraphService {
 
     // If no documentIds provided, process all completed documents
     if (!documentIds || documentIds.length === 0) {
-      // Get all documents (in a real system, this would query the document service)
-      documentIds = [];
+      // Get all completed documents from document service
+      documentIds = await this.documentService.getAllCompletedDocumentIds();
+      this.logger.log(`No documentIds provided, processing all ${documentIds.length} completed documents`, 'KnowledgeGraphService');
     }
 
     for (const documentId of documentIds) {

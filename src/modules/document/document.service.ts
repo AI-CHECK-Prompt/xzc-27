@@ -271,4 +271,12 @@ export class DocumentService {
       highlights: [],
     };
   }
+
+  async getAllCompletedDocumentIds(): Promise<string[]> {
+    const documents = await this.documentRepository.find({
+      where: { status: DocumentStatus.COMPLETED },
+      select: ['id'],
+    });
+    return documents.map(doc => doc.id);
+  }
 }
