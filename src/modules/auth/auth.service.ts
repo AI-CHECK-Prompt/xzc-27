@@ -73,9 +73,12 @@ export class AuthService {
     }
   }
 
-  private sanitizeUser(user: User): User {
-    const sanitized = { ...user };
-    delete sanitized.password;
-    return sanitized;
+  private sanitizeUser(user: User): Partial<User> {
+    return JSON.parse(JSON.stringify({
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+    }));
   }
 }
