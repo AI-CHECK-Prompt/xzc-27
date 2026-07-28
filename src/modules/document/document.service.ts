@@ -237,10 +237,20 @@ export class DocumentService {
 
   async deleteDocument(id: string): Promise<void> {
     const document = await this.getDocument(id);
-    if (document && fs.existsSync(document.filePath)) {
-      fs.unlinkSync(document.filePath);
+    if (document) {
+      const filePath = document.filePath;
+      // Delete file first if it exists
+      if (fs.existsSync(filePath)) {
+        try {
+          fs.unlinkSync(filePath);
+        } catch (error) {
+          this.logger.error(`Failed to delete file: ${filePath}`, error.stack, 'DocumentService');
+          throw new Error(`Failed to delete file: ${filePath}`);
+        }
+      }
+      // Then delete database record
+      await this.documentRepository.delete(id);
     }
-    await this.documentRepository.delete(id);
   }
 
   async batchProcessDocuments(documentIds: string[]): Promise<any[]> {
@@ -255,6 +265,31 @@ export class DocumentService {
           results.push({ success: false, documentId: id, reason: 'Document not found or already processing' });
         }
       } catch (error) {
+        results.push({ success: false, documentId: id, error: error.message });
+      }
+    }
+    return results;
+  }
+
+  async batchDeleteDocuments(documentIds: string[]): Promise<any[]> {
+    const results = [];
+    for (const id of documentIds) {
+      try {
+        const document = await this.getDocument(id);
+        if (!document) {
+          results.push({ success: false, documentId: id, reason: 'Document not found' });
+          continue;
+        }
+        const filePath = document.filePath;
+        // Delete file first if it exists
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+        // Then delete database record
+        await this.documentRepository.delete(id);
+        results.push({ success: true, documentId: id });
+      } catch (error) {
+        this.logger.error(`Failed to delete document ${id}`, error.stack, 'DocumentService');
         results.push({ success: false, documentId: id, error: error.message });
       }
     }

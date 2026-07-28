@@ -50,6 +50,13 @@ export class DocumentController {
     return this.documentService.deleteDocument(id);
   }
 
+  @Post('batch-delete')
+  @ApiOperation({ summary: '批量删除文档' })
+  @ApiResponse({ status: 200, description: '批量删除成功' })
+  async batchDeleteDocuments(@Body() body: { documentIds: string[] }) {
+    return this.documentService.batchDeleteDocuments(body.documentIds);
+  }
+
   @Post('batch')
   @ApiOperation({ summary: '批量处理文档' })
   @ApiResponse({ status: 200, description: '批量处理成功' })
