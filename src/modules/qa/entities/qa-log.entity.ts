@@ -1,4 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { ConfidenceBreakdown, LowConfidenceWarning, ReasoningChain } from '../../../common/interfaces/reasoning-chain.interface';
 
 export enum QAParadigm {
   YES_NO = 'yes_no',
@@ -46,6 +47,15 @@ export class QALog {
 
   @Column({ type: 'float', default: 0.0 })
   confidence: number;
+
+  @Column({ type: 'json', nullable: true })
+  confidenceBreakdown: ConfidenceBreakdown;
+
+  @Column({ type: 'json', nullable: true })
+  reasoningChain: ReasoningChain;
+
+  @Column({ type: 'json', nullable: true })
+  lowConfidenceWarning: LowConfidenceWarning;
 
   @Column({ type: 'int', default: 0 })
   responseTime: number;

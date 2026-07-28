@@ -54,4 +54,21 @@ export class QAController {
   async parseQuestion(@Body() body: { question: string }) {
     return this.qaService.analyzeQuestion(body.question);
   }
+
+  @Get('source-fragment/:documentId/:entityId')
+  @ApiOperation({ summary: '获取实体在档案中的原文片段' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  async getSourceFragment(
+    @Param('documentId') documentId: string,
+    @Param('entityId') entityId: string,
+  ) {
+    return this.qaService.getDocumentSourceFragment(documentId, entityId);
+  }
+
+  @Get('confidence-threshold')
+  @ApiOperation({ summary: '获取置信度阈值配置' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  async getConfidenceThresholdConfig() {
+    return this.qaService.getConfidenceThresholdConfig();
+  }
 }
