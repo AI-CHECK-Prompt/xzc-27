@@ -42,8 +42,11 @@ export class Neo4jService implements OnModuleInit, OnModuleDestroy {
     try {
       const result = await session.run(cypher, params);
       return result.records;
+    } catch (error) {
+      this.logger.error(`Cypher query failed: ${error.message}`, error.stack, 'Neo4jService');
+      throw error;
     } finally {
-      await session.close();
+      await this.safeCloseSession(session);
     }
   }
 
@@ -51,12 +54,30 @@ export class Neo4jService implements OnModuleInit, OnModuleDestroy {
     const session = this.driver.session({ defaultAccessMode: neo4j.session.WRITE });
     try {
       const result = await session.run(cypher, params);
-      return result.summary.counters.updates().nodesCreated + 
+      return result.summary.counters.updates().nodesCreated +
              result.summary.counters.updates().nodesDeleted +
              result.summary.counters.updates().relationshipsCreated +
              result.summary.counters.updates().relationshipsDeleted;
+    } catch (error) {
+      this.logger.error(`Cypher write failed: ${error.message}`, error.stack, 'Neo4jService');
+      throw error;
     } finally {
+      await this.safeCloseSession(session);
+    }
+  }
+
+  private async safeCloseSession(session: neo4j.Session): Promise<void> {
+    if (!session) return;
+    try {
       await session.close();
+    } catch (error) {
+      this.logger.warn(`Error closing Neo4j session: ${error.message}`, 'Neo4jService');
+    }
+    // Ensure session resources are released even if close() was interrupted
+    try {
+      await session.close();
+    } catch {
+      // Ignore secondary close errors
     }
   }
 
