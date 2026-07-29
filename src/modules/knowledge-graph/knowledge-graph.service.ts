@@ -237,7 +237,7 @@ export class KnowledgeGraphService {
     return {
       nodes: nodeCountResult[0]?.get('count') || 0,
       relationships: relCountResult[0]?.get('count') || 0,
-      labels: labelsResult.map((r) => r.get('label')),
+      labels: labelsResult.map((r) => r.get('label')).filter((label) => label !== null),
     };
   }
 
